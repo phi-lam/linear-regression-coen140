@@ -9,18 +9,6 @@ import sys
 from operator import itemgetter
 
 ########################## VARIABLE DECLARATIONS ###########################
-#   Elements:
-#       1. sepal length in cm
-#       2. sepal width in cm
-#       3. petal length in cm
-#       4. petal width in cm
-#       5. class: Iris-setosa, Iris-versicolour, Iris-virginica
-#
-#   Structure: data[0] = [sep_len, sep_wid, pet_len, pet_wid, "Iris-setosa"]
-#              In math, represented by column vector
-#
-#   First 40 of each class -> training data
-#   Last 10 of each class -> test data
 
 training_cols = 96        # 95 features, 1st column is ViolentCrimesPerPop
 training_rows = 1595      # 1595 instances
@@ -40,11 +28,6 @@ test_x = [[0.0 for x in range(test_cols - 1)] for y in range(test_rows)]
 
 
 #---For debugging---
-testing = False
-testing_covariance = False
-testing_populate = False
-testing_main = False
-testing_calculate_qda = False
 
 ########################## FUNCTION DEFINITIONS #############################
 
@@ -140,6 +123,8 @@ def populate_test(in_file, source_array, data_y, data_x):
 #		Given <y> and <x> vectors and the number of instances,
 #		return <W>, the vector of weights.
 #
+#		Should be identical to ridgereg_calculateW, but without lambda
+#
 #		1) add a column of 1's to 'x'
 #
 
@@ -187,14 +172,14 @@ def linreg_predict(weights, _test_x):
 	return y
 
 #-----------------------------------------------------------------
-#	FUNCTION: cross_val()
+#	FUNCTION: crossval_split_data()
 #
 #	Description:
 #		Slices the training data into a fraction of n_fold partitions.
 #		Returns a dict of two values: the resulting training data and test data
 #		after the slicing is complete.
 #
-def cross_val(train, iteration, n_fold):
+def crossval_split_data(train, iteration, n_fold):
 	start_idx = int(iteration * training_rows / n_fold)
 	end_idx = int((iteration + 1) * training_rows / n_fold)
 	# print(start_idx)
@@ -228,7 +213,7 @@ def ridgereg_calculateW(data_y, data_x, lam):
 	#print(np.shape(data_x))
 	#print(np.shape(data_y))
 
-	w1 = np.matmul(x_trans, data_x)
+	w1 = np.dot(x_trans, data_x)
 	w2 = lam * id_mtx
 
 	#print("#####", np.shape(w2))
@@ -236,6 +221,8 @@ def ridgereg_calculateW(data_y, data_x, lam):
 	w4 = np.linalg.inv(w3)
 	w5 = np.matmul(w4, x_trans)
 	w = np.matmul(w5, data_y)
+
+	# print("################# \n", w5)
 
 	return w
 #-----------------------------------------------------------------
@@ -263,6 +250,54 @@ def ridgereg_predict(weights, _test_x):
 	# # print("linreg_predict()", np.shape(y))
 	# return y
 
+#-----------------------------------------------------------------
+#	FUNCTION: cross_validate()
+#
+#	Description: Finds the optimal lambda in a ridge regression
+#
+
+def cross_validate(lam, trials, n_fold):
+	optimal_lam = lam
+	current_error = 1.0
+	best_error = current_error
+	sum = 0
+
+	for i in range(trials):
+		print("\n ====== Lambda:", lam, " ======")
+		sum = 0
+
+		for j in range(n_fold):
+			print("Round: ", ((n_fold*i) + j)+1)	##print round number
+			# 1) Prep training and test data
+			data_dict = crossval_split_data(training_data, j, n_fold)
+			r_train_x = data_dict['train_x']
+			r_train_y = data_dict['train_y']
+			r_test_x = data_dict['test_x']
+			r_test_y = data_dict['test_y']
+
+			# 2) Retrain model
+			ridge_w = ridgereg_calculateW(r_train_y, r_train_x, lam)
+
+			# 3) Test error for given lambda
+			# print(np.shape(ridge_w))
+			# print(np.shape(r_test_x))
+			predictions = ridgereg_predict(ridge_w, r_test_x)
+			error = compute_rmse(predictions, r_test_y)
+			print(" ## Error: ", error)# " || Lambda: ", lam)
+
+			# 4) Calculate mean error, compare to others
+			sum += error
+
+		#print("-- Sum -- ", sum)
+		current_error = sum / n_fold
+		print("\n # Average Error", current_error)
+		if current_error < best_error:
+			best_error = current_error
+			optimal_lam = lam
+
+		lam = lam / 2
+	print("\n== Optimal Lambda ==\n", optimal_lam)
+	print("\n== Best Error ==\n", best_error)
 
 #-----------------------------------------------------------------
 #	FUNCTION: ridge_reg()
@@ -273,47 +308,15 @@ def ridgereg_predict(weights, _test_x):
 
 def ridge_reg():
 	lam = 400
-	optimal_lam = lam
-	current_error = 1.0
-	best_error = current_error
-	sum = 0
+	cross_validate(lam, 10, 5)
 
-	for i in range(10):
-		sum = 0
-		print("\n-- Lambda = ", lam, " --")
-		for j in range(5):
-			print("Round: ", (5*i) + j)
-			# 1) Prep training and test data
-			data_dict = cross_val(training_data, j, 5)
-			r_train_x = data_dict['train_x']
-			r_train_y = data_dict['train_y']
-			r_test_x = data_dict['test_x']
-			r_test_y = data_dict['test_y']
-			#		1a) Add column of 1's (inside calculateW)
+#-----------------------------------------------------------------
+#	FUNCTION: grad_desc()
+#
+#
+def grad_desc(weights, data_x, data_y, step, lam):
+	return
 
-			# 2) Retrain model
-			ridge_w = ridgereg_calculateW(r_train_y, r_train_x, lam)
-
-			# 3) Test error for given lambda
-			# print(np.shape(ridge_w))
-			# print(np.shape(r_test_x))
-			predictions = ridgereg_predict(ridge_w, r_test_x)
-			error = compute_rmse(predictions, r_test_y)
-			print(" ## Error: ", error, " || Lambda: ", lam)
-
-			# 4) Calculate mean error, compare to others
-			sum += error
-
-		#print("-- Sum -- ", sum)
-		current_error = sum / 5
-		print("### Average Error", current_error)
-		if current_error < best_error:
-			best_error = current_error
-			optimal_lam = lam
-
-		lam = lam / 2
-	print("\n== Optimal Lambda ==\n", optimal_lam)
-	print("\n== Best Error ==\n", best_error)
 
 
 ################################# main ###################################
@@ -374,10 +377,12 @@ print("==================")
 ridge_reg()
 
 ############ GRADIENT DESCENT ##############
+print("\n=======================================")
+print("========== GRADIENT DESCENT ==========")
+print("=======================================")
 
 
 
 
-
-
+print()
 #end
