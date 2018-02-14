@@ -348,6 +348,7 @@ def grad_desc(data_x, data_y, lam, step, tolerance):
 	result = np.matmul(r1, r3)
 	w_next = np.add(w_curr, result)
 
+	# print('tolerance: ', tolerance)
 
 	while (abs(diff) > tolerance):
 		w_curr = w_next
@@ -362,9 +363,10 @@ def grad_desc(data_x, data_y, lam, step, tolerance):
 		#---For debugging
 		# eu_dist = lossFunction(data_x, data_y, w_next)
 		# print(eu_dist, '| diff: ', diff, end='\r')  # print overwriting one line
-		print('tolerance: ', tolerance, '| coeff. difference: ', abs(diff), end='\r')  # print overwriting one line
+		print('coeff. difference: ', abs(diff), end='\r')  # print overwriting one line
 
-	print("Convergence value: ", lossFunction(data_x, data_y, w_next))
+	# print()
+	#print("\nConvergence value: ", lossFunction(data_x, data_y, w_next))
 	return w_next
 
 #-----------------------------------------------------------------
@@ -379,8 +381,8 @@ def cross_validate_grad_desc(lam, trials, n_fold):
 	current_error = 1.0
 	best_error = current_error
 	sum = 0
-	step = 0.00001			# four 0's and a 1
-	tolerance = 0.0000001 	# six 0's and a 1
+	step = 0.00001			# 1e-5 four 0's and a 1
+	tolerance = 0.00001 	# 1e-5 four 0's and a 1
 
 	for i in range(trials):
 		print("\n ====== Lambda:", lam, " ======")
@@ -396,14 +398,14 @@ def cross_validate_grad_desc(lam, trials, n_fold):
 			r_test_y = data_dict['test_y']
 
 			# 2) Retrain model
-			ridge_w = grad_desc(r_train_x, r_train_y, 0, step, tolerance)
-
+			ridge_w = grad_desc(r_train_x, r_train_y, lam, step, tolerance)
 			# 3) Test error for given lambda
 			# print(np.shape(ridge_w))
 			# print(np.shape(r_test_x))
 			predictions = ridgereg_predict(ridge_w, r_test_x)
 			error = compute_rmse(predictions, r_test_y)
-			print(" ## Error: ", error)# " || Lambda: ", lam)
+
+			print(" ### Error: ", error, "                             ")# " || Lambda: ", lam)
 
 			# 4) Calculate mean error, compare to others
 			sum += error
@@ -479,26 +481,40 @@ print(" Ridge Regression ")
 print("==================")
 ridge_reg()
 
-############ GRADIENT DESCENT ##############
-print("\n========================================================")
-print("========== LINEAR GRADIENT DESCENT (vs. test data)=======")
-print("=========================================================")
-step = 0.00001			# four 0's and a 1
-tolerance = 0.0000001 	# six 0's and a 1
-lam = 0
-#cross_validate_grad_desc(lam, 10, 5)	#10 trials, 5 rounds per trial
+# ############ GRADIENT DESCENT ##############
+# print("\n=========================================================")
+# print("================= LINEAR GRADIENT DESCENT ===============")
+# print("=========================================================")
+# step = 0.00001			# four 0's and a 1
+# tolerance = 0.0000001 	# six 0's and a 1
+lam = 400
+#
+# print("\n--- Calculating weights ---")
+# weights_LGD = grad_desc(training_x, training_y, lam, step, tolerance)
+#
+# print("\n==============================================")
+# print("=== Lin. Gradient Descent (vs. test data) ===")
+# print("=============================================")
+# predictions_LGD = linreg_predict(weights_LGD, test_x)
+# test_error_LGD = compute_rmse(predictions_LGD, test_y)
+# print("RMSE Error: ", test_error_LGD)
+# # Current result: 0.14582817901908202
+#
+# print("\n=================================================")
+# print("=== Lin. Gradient Descent (vs. training data) ===")
+# print("=================================================")
+# predictions_LGD_train = linreg_predict(weights_LGD, training_x)
+# test_error_LGD_train = compute_rmse(predictions_LGD_train, training_y)
+# print("RMSE Error: ", test_error_LGD)
+# Current result: 0.14582817901908202
 
-weights_LGD = grad_desc(training_x, training_y, lam, step, tolerance)
-predictions_LGD = linreg_predict(weights_LGD, test_x)
-test_error_LGD = compute_rmse(predictions_LGD, test_y)
-print("RMSE Error: ", test_error_LGD)
+print("\n===============================================")
+print("=== Ridge. Gradient Descent (vs. test data) ===")
+print("===============================================")
+cross_validate_grad_desc(lam, 10, 5)	#10 trials, 5 rounds per trial
 
-
-
-
-
-#TODO: fix other functions so that the following works
-#cross_validate()
+#TODO: fix other functions so that weights don't need to be recalculated so many
+#	times
 
 
 print()
