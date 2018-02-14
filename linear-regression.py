@@ -28,7 +28,7 @@ test_x = [[0.0 for x in range(test_cols - 1)] for y in range(test_rows)]
 
 
 #---For debugging---
-
+# print(eu_dist, '| diff: ', diff, end='\r')  # print overwriting one line
 ########################## FUNCTION DEFINITIONS #############################
 
 #-----------------------------------------------------------------
@@ -360,7 +360,11 @@ def grad_desc(data_x, data_y, lam, step, tolerance):
 		diff = np.amin(np.subtract(w_next, w_curr))
 
 		#---For debugging
-		print(lossFunction(data_x, data_y, w_next))
+		# eu_dist = lossFunction(data_x, data_y, w_next)
+		# print(eu_dist, '| diff: ', diff, end='\r')  # print overwriting one line
+		print('tolerance: ', tolerance, '| coeff. difference: ', abs(diff), end='\r')  # print overwriting one line
+
+	print("Convergence value: ", lossFunction(data_x, data_y, w_next))
 	return w_next
 
 #-----------------------------------------------------------------
