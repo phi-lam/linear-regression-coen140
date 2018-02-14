@@ -267,19 +267,19 @@ def ridgereg_predict(weights, _test_x):
 #		TODO:
 #	Description: Finds the optimal lambda in a ridge regression
 #
-
 def cross_validate(lam, trials, n_fold):
+	debugging = False
 	optimal_lam = lam
 	current_error = 1.0
 	best_error = current_error
 	sum = 0
 
 	for i in range(trials):
-		print("\n ====== Lambda:", lam, " ======")
+		if debugging: print("\n ====== Lambda:", lam, " ======")
 		sum = 0
 
 		for j in range(n_fold):
-			print("Round: ", ((n_fold*i) + j)+1)	##print round number
+			if debugging: print("Round: ", ((n_fold*i) + j)+1)	##print round number
 			# 1) Prep training and test data
 			data_dict = crossval_split_data(training_data, j, n_fold)
 			r_train_x = data_dict['train_x']
@@ -295,14 +295,14 @@ def cross_validate(lam, trials, n_fold):
 			# print(np.shape(r_test_x))
 			predictions = ridgereg_predict(ridge_w, r_test_x)
 			error = compute_rmse(predictions, r_test_y)
-			print(" ## Error: ", error)# " || Lambda: ", lam)
+			if debugging: print(" ## Error: ", error)# " || Lambda: ", lam)
 
 			# 4) Calculate mean error, compare to others
 			sum += error
 
 		#print("-- Sum -- ", sum)
 		current_error = sum / n_fold
-		print("\n # Average Error", current_error)
+		if debugging: print("\n # Average Error", current_error)
 		if current_error < best_error:
 			best_error = current_error
 			optimal_lam = lam
@@ -310,7 +310,8 @@ def cross_validate(lam, trials, n_fold):
 		lam = lam / 2
 		#exit()		# JUST FOR Debugging
 	print("\n== Optimal Lambda ==\n", optimal_lam)
-	print("\n== Best Error ==\n", best_error)
+	if debugging: print("\n== Best Error ==\n", best_error)
+	return optimal_lam
 
 #-----------------------------------------------------------------
 #	FUNCTION: ridge_reg()	TODO: once cross_validate is changed, this needs
@@ -319,15 +320,14 @@ def cross_validate(lam, trials, n_fold):
 #	Description: Returns <y>, vector of predicted values
 #				text_x represents vector of test data
 #
-
 def ridge_reg():
 	lam = 400
-	cross_validate(lam, 10, 5)
+	return cross_validate(lam, 10, 5)
 
 #-----------------------------------------------------------------
 #	FUNCTION: grad_desc()
 #
-#	Math: w^(t+1) = w^t + axT(y-xw^t)
+#	Math: w^(t+1) = w^t + a(xT(y-xw^t) - lam * w^t)
 #
 #	tolerance = epsilon
 #	alpha = step size
@@ -336,27 +336,30 @@ def ridge_reg():
 
 def grad_desc(data_x, data_y, lam, step, tolerance):
 	#--- Initialize gradient descent (find w0), add col of 1's to x
-	w_curr = np.random.normal(0,1,(96,1))
+	w_curr = np.random.uniform(0,1,(96,1))
 	rows = data_x.shape[0]
 	data_x = np.c_[data_x, np.ones(rows)]
 	diff = 1
 	x_trans = np.transpose(data_x)
-	#--- calculate w1
-	r1 = step * x_trans
+	#--- calculate w1 (right-to-left)
+	r1 = lam * w_curr
 	r2 = np.matmul(data_x, w_curr)
-	r3 = data_y - r2
-	result = np.matmul(r1, r3)
+	r3 = np.subtract(data_y, r2)
+	r4 = np.matmul(x_trans, r3)
+	r5 = np.subtract(r4, r1)
+	result = step * r5
 	w_next = np.add(w_curr, result)
 
 	# print('tolerance: ', tolerance)
 
 	while (abs(diff) > tolerance):
 		w_curr = w_next
-		x_trans = np.transpose(data_x)
-		r1 = step * x_trans
+		r1 = lam * w_curr
 		r2 = np.matmul(data_x, w_curr)
-		r3 = data_y - r2
-		result = np.matmul(r1, r3)
+		r3 = np.subtract(data_y, r2)
+		r4 = np.matmul(x_trans, r3)
+		r5 = np.subtract(r4, r1)
+		result = step * r5
 		w_next = np.add(w_curr, result)
 		diff = np.amin(np.subtract(w_next, w_curr))
 
@@ -377,6 +380,7 @@ def grad_desc(data_x, data_y, lam, step, tolerance):
 #
 
 def cross_validate_grad_desc(lam, trials, n_fold):
+	debugging = False
 	optimal_lam = lam
 	current_error = 1.0
 	best_error = current_error
@@ -389,7 +393,7 @@ def cross_validate_grad_desc(lam, trials, n_fold):
 		sum = 0
 
 		for j in range(n_fold):
-			print("Round: ", ((n_fold*i) + j)+1)	##print round number
+			if debugging: print("Round: ", ((n_fold*i) + j)+1)	##print round number
 			# 1) Prep training and test data
 			data_dict = crossval_split_data(training_data, j, n_fold)
 			r_train_x = data_dict['train_x']
@@ -405,14 +409,14 @@ def cross_validate_grad_desc(lam, trials, n_fold):
 			predictions = ridgereg_predict(ridge_w, r_test_x)
 			error = compute_rmse(predictions, r_test_y)
 
-			print(" ### Error: ", error, "                             ")# " || Lambda: ", lam)
+			if debugging: print(" ### Error: ", error, "                             ")# " || Lambda: ", lam)
 
 			# 4) Calculate mean error, compare to others
 			sum += error
 
 		#print("-- Sum -- ", sum)
 		current_error = sum / n_fold
-		print("\n # Average Error", current_error)
+		if debugging: print("\n # Average Error", current_error)
 		if current_error < best_error:
 			best_error = current_error
 			optimal_lam = lam
@@ -421,6 +425,7 @@ def cross_validate_grad_desc(lam, trials, n_fold):
 		#exit()		# JUST FOR Debugging
 	print("\n== Optimal Lambda ==\n", optimal_lam)
 	print("\n== Best Error ==\n", best_error)
+	return optimal_lam
 
 
 ################################# main ###################################
@@ -479,14 +484,27 @@ print("RMSE Error: ", training_error_LR)
 print("\n==================")
 print(" Ridge Regression ")
 print("==================")
-ridge_reg()
+
+print("============================")
+print("== Finding optimal lambda ==")
+print("============================")
+opt_lam = ridge_reg()
+
+print("\n=====================================")
+print("  Ridge Regression (vs. test data)  ")
+print("=====================================")
+#print(opt_lam)
+weights_RR = ridgereg_calculateW(training_y, training_x, opt_lam)
+predictions_RR = ridgereg_predict(weights_RR, test_x)
+test_error_RR = compute_rmse(predictions_RR, test_y)
+print("RMSE Error: ", test_error_RR)
 
 # ############ GRADIENT DESCENT ##############
 # print("\n=========================================================")
 # print("================= LINEAR GRADIENT DESCENT ===============")
 # print("=========================================================")
-# step = 0.00001			# four 0's and a 1
-# tolerance = 0.0000001 	# six 0's and a 1
+step = 0.00001			# 1e-5: four 0's and a 1
+tolerance = 0.00001 	# 1e-5
 lam = 400
 #
 # print("\n--- Calculating weights ---")
@@ -508,10 +526,25 @@ lam = 400
 # print("RMSE Error: ", test_error_LGD)
 # Current result: 0.14582817901908202
 
+
 print("\n===============================================")
-print("=== Ridge. Gradient Descent (vs. test data) ===")
+print("====== RIDGE REGRESSION GRADIENT DESCENT ======")
 print("===============================================")
-cross_validate_grad_desc(lam, 10, 5)	#10 trials, 5 rounds per trial
+print(" --- Determining optimal lambda --- ")
+opt_lam = cross_validate_grad_desc(lam, 10, 5)	#10 trials, 5 rounds per trial
+# opt_lam = 25
+print("== Optimal Lambda ==\n ", opt_lam)
+
+print("\n===============================================")
+print("=== Ridge Gradient Descent (vs. test data) ===")
+print("===============================================")
+weights_RGD = grad_desc(training_x, training_y, opt_lam, step, tolerance)
+predictions_RGD = linreg_predict(weights_RGD, test_x)
+test_error_RGD = compute_rmse(predictions_RGD, test_y)
+print("RMSE Error: ", test_error_RGD, "                          ")
+# Current result with lambda = 25: 0.1549461254608019447693
+
+
 
 #TODO: fix other functions so that weights don't need to be recalculated so many
 #	times
