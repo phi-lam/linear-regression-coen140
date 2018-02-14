@@ -42,6 +42,17 @@ def compute_rmse(predictions, target_y):
 	return np.sqrt(((predictions - target_y) ** 2).mean())
 
 #-----------------------------------------------------------------
+#	FUNCTION: lossFunction()
+#
+def lossFunction(data_x, data_y, w):
+	r1 = np.matmul(data_x, w)
+	r2 = np.subtract(r1, data_y)
+
+	result = np.matmul(np.transpose(r2), r2)
+	return result
+
+
+#-----------------------------------------------------------------
 #	FUNCTION: populate()
 #   Input: training-data.txt
 #	Procedure:
@@ -252,7 +263,8 @@ def ridgereg_predict(weights, _test_x):
 
 #-----------------------------------------------------------------
 #	FUNCTION: cross_validate()
-#
+#		TODO: modify to take in a vector of weights (probably from crossval_split)
+#		TODO:
 #	Description: Finds the optimal lambda in a ridge regression
 #
 
@@ -296,11 +308,13 @@ def cross_validate(lam, trials, n_fold):
 			optimal_lam = lam
 
 		lam = lam / 2
+		#exit()		# JUST FOR Debugging
 	print("\n== Optimal Lambda ==\n", optimal_lam)
 	print("\n== Best Error ==\n", best_error)
 
 #-----------------------------------------------------------------
-#	FUNCTION: ridge_reg()
+#	FUNCTION: ridge_reg()	TODO: once cross_validate is changed, this needs
+#									to be fixed as well
 #
 #	Description: Returns <y>, vector of predicted values
 #				text_x represents vector of test data
@@ -313,10 +327,94 @@ def ridge_reg():
 #-----------------------------------------------------------------
 #	FUNCTION: grad_desc()
 #
+#	Math: w^(t+1) = w^t + axT(y-xw^t)
 #
-def grad_desc(weights, data_x, data_y, step, lam):
-	return
+#	tolerance = epsilon
+#	alpha = step size
+#
+#	Math stops when Euclid distance converges
 
+def grad_desc(data_x, data_y, lam, step, tolerance):
+	#--- Initialize gradient descent (find w0), add col of 1's to x
+	w_curr = np.random.normal(0,1,(96,1))
+	rows = data_x.shape[0]
+	data_x = np.c_[data_x, np.ones(rows)]
+	diff = 1
+	x_trans = np.transpose(data_x)
+	#--- calculate w1
+	r1 = step * x_trans
+	r2 = np.matmul(data_x, w_curr)
+	r3 = data_y - r2
+	result = np.matmul(r1, r3)
+	w_next = np.add(w_curr, result)
+
+
+	while (abs(diff) > tolerance):
+		w_curr = w_next
+		x_trans = np.transpose(data_x)
+		r1 = step * x_trans
+		r2 = np.matmul(data_x, w_curr)
+		r3 = data_y - r2
+		result = np.matmul(r1, r3)
+		w_next = np.add(w_curr, result)
+		diff = np.amin(np.subtract(w_next, w_curr))
+
+		#---For debugging
+		print(lossFunction(data_x, data_y, w_next))
+	return w_next
+
+#-----------------------------------------------------------------
+#	FUNCTION: cross_validate_grad_desc() TODO: rewrite cross_validate
+#
+#	Description: This would be integrated into the old one if i had
+#				more time.
+#
+
+def cross_validate_grad_desc(lam, trials, n_fold):
+	optimal_lam = lam
+	current_error = 1.0
+	best_error = current_error
+	sum = 0
+	step = 0.00001			# four 0's and a 1
+	tolerance = 0.0000001 	# six 0's and a 1
+
+	for i in range(trials):
+		print("\n ====== Lambda:", lam, " ======")
+		sum = 0
+
+		for j in range(n_fold):
+			print("Round: ", ((n_fold*i) + j)+1)	##print round number
+			# 1) Prep training and test data
+			data_dict = crossval_split_data(training_data, j, n_fold)
+			r_train_x = data_dict['train_x']
+			r_train_y = data_dict['train_y']
+			r_test_x = data_dict['test_x']
+			r_test_y = data_dict['test_y']
+
+			# 2) Retrain model
+			ridge_w = grad_desc(r_train_x, r_train_y, 0, step, tolerance)
+
+			# 3) Test error for given lambda
+			# print(np.shape(ridge_w))
+			# print(np.shape(r_test_x))
+			predictions = ridgereg_predict(ridge_w, r_test_x)
+			error = compute_rmse(predictions, r_test_y)
+			print(" ## Error: ", error)# " || Lambda: ", lam)
+
+			# 4) Calculate mean error, compare to others
+			sum += error
+
+		#print("-- Sum -- ", sum)
+		current_error = sum / n_fold
+		print("\n # Average Error", current_error)
+		if current_error < best_error:
+			best_error = current_error
+			optimal_lam = lam
+
+		lam = lam / 2
+		#exit()		# JUST FOR Debugging
+	print("\n== Optimal Lambda ==\n", optimal_lam)
+	print("\n== Best Error ==\n", best_error)
 
 
 ################################# main ###################################
@@ -329,10 +427,11 @@ if len(sys.argv) == 3:
 	except:
 		print("Usage: arguments must be text files")
 		exit()
-elif len(sys.argv) == 3:
+elif len(sys.argv) == 4:
 	try:
 		f1 = open(sys.argv[1])
-		sys.stdout = open(sys.argv[2], "w")
+		f2 = open(sys.argv[2])
+		sys.stdout = open(sys.argv[3], "w")
 	except:
 		print("Usage: arguments must be text files")
 		exit()
@@ -352,22 +451,22 @@ print("--- Done ---")
 
 # ---- Linear Regression ----
 print("--- Calculating Linear Regression ---\n ")
-w = linreg_calculateW(training_y, training_x)
+linreg_weights = linreg_calculateW(training_y, training_x)
 #print(predictions)
 
 # -- Print results --
 print("\n=====================================")
 print("  Linear Regression (vs. test data)  ")
 print("=====================================")
-predictions = linreg_predict(w, test_x)
-test_error_LR = compute_rmse(predictions, test_y)
+predictions_lr_test = linreg_predict(linreg_weights, test_x)
+test_error_LR = compute_rmse(predictions_lr_test, test_y)
 print("RMSE Error: ", test_error_LR)
 
 print("\n=======================================")
 print(" Linear Regression (vs. training data) ")
 print("=======================================")
-predictions = linreg_predict(w, training_x)
-training_error_LR = compute_rmse(predictions, training_y)
+predictions_lr_train = linreg_predict(linreg_weights, training_x)
+training_error_LR = compute_rmse(predictions_lr_train, training_y)
 print("RMSE Error: ", training_error_LR)
 
 # ---- Ridge Regression ----
@@ -377,11 +476,25 @@ print("==================")
 ridge_reg()
 
 ############ GRADIENT DESCENT ##############
-print("\n=======================================")
-print("========== GRADIENT DESCENT ==========")
-print("=======================================")
+print("\n========================================================")
+print("========== LINEAR GRADIENT DESCENT (vs. test data)=======")
+print("=========================================================")
+step = 0.00001			# four 0's and a 1
+tolerance = 0.0000001 	# six 0's and a 1
+lam = 0
+#cross_validate_grad_desc(lam, 10, 5)	#10 trials, 5 rounds per trial
+
+weights_LGD = grad_desc(training_x, training_y, lam, step, tolerance)
+predictions_LGD = linreg_predict(weights_LGD, test_x)
+test_error_LGD = compute_rmse(predictions_LGD, test_y)
+print("RMSE Error: ", test_error_LGD)
 
 
+
+
+
+#TODO: fix other functions so that the following works
+#cross_validate()
 
 
 print()
