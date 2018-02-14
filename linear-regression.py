@@ -268,7 +268,7 @@ def ridgereg_predict(weights, _test_x):
 #	Description: Finds the optimal lambda in a ridge regression
 #
 def cross_validate(lam, trials, n_fold):
-	debugging = False
+	debugging = True
 	optimal_lam = lam
 	current_error = 1.0
 	best_error = current_error
@@ -309,7 +309,7 @@ def cross_validate(lam, trials, n_fold):
 
 		lam = lam / 2
 		#exit()		# JUST FOR Debugging
-	print("\n== Optimal Lambda ==\n", optimal_lam)
+	if debugging: print("\n== Optimal Lambda ==\n", optimal_lam)
 	if debugging: print("\n== Best Error ==\n", best_error)
 	return optimal_lam
 
@@ -335,6 +335,7 @@ def ridge_reg():
 #	Math stops when Euclid distance converges
 
 def grad_desc(data_x, data_y, lam, step, tolerance):
+	debugging = False
 	#--- Initialize gradient descent (find w0), add col of 1's to x
 	w_curr = np.random.uniform(0,1,(96,1))
 	rows = data_x.shape[0]
@@ -366,7 +367,7 @@ def grad_desc(data_x, data_y, lam, step, tolerance):
 		#---For debugging
 		# eu_dist = lossFunction(data_x, data_y, w_next)
 		# print(eu_dist, '| diff: ', diff, end='\r')  # print overwriting one line
-		print('coeff. difference: ', abs(diff), end='\r')  # print overwriting one line
+		if debugging: print('coeff. difference: ', abs(diff), end='\r')  # print overwriting one line
 
 	# print()
 	#print("\nConvergence value: ", lossFunction(data_x, data_y, w_next))
@@ -378,9 +379,8 @@ def grad_desc(data_x, data_y, lam, step, tolerance):
 #	Description: This would be integrated into the old one if i had
 #				more time.
 #
-
 def cross_validate_grad_desc(lam, trials, n_fold):
-	debugging = False
+	debugging = True
 	optimal_lam = lam
 	#print(lam)
 	current_error = 1.0
@@ -424,8 +424,8 @@ def cross_validate_grad_desc(lam, trials, n_fold):
 
 		lam = lam / 2
 		#exit()		# JUST FOR Debugging
-	print("\n== Optimal Lambda ==\n", optimal_lam)
-	print("\n== Best Error ==\n", best_error)
+	if debugging: print("\n== Optimal Lambda ==", optimal_lam)
+	if debugging: print("\n== Best Error ==", best_error)
 	return optimal_lam
 
 
@@ -490,10 +490,9 @@ print("\n=========================================================")
 print("==================== RIDGE REGRESSION ==================")
 print("========================================================")
 
-print("\n========================")
-print(" Finding optimal lambda ")
-print("========================")
+print(" \n--- Determining optimal lambda --- ")
 opt_lam = ridge_reg()
+print("Optimal Lambda = ", opt_lam)
 
 print("\n=====================================")
 print("  Ridge Regression (vs. test data)  ")
@@ -535,13 +534,12 @@ test_error_LGD_train = compute_rmse(predictions_LGD_train, training_y)
 print("RMSE Error: ", test_error_LGD)
 # Current result: 0.14582817901908202
 
-
 print("\n=====================================================")
 print("========= RIDGE REGRESSION GRADIENT DESCENT =========")
 print("=====================================================")
-print(" --- Determining optimal lambda --- ")
+print(" \n--- Determining optimal lambda --- ")
 opt_lam = cross_validate_grad_desc(400, 10, 5)	#10 trials, 5 rounds per trial
-print("== Optimal Lambda ==\n ", opt_lam)
+print("Optimal Lambda = ", opt_lam)
 
 print("\n=========================================")
 print(" Ridge Gradient Descent (vs. test data) ")
