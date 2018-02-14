@@ -382,6 +382,7 @@ def grad_desc(data_x, data_y, lam, step, tolerance):
 def cross_validate_grad_desc(lam, trials, n_fold):
 	debugging = False
 	optimal_lam = lam
+	#print(lam)
 	current_error = 1.0
 	best_error = current_error
 	sum = 0
@@ -389,7 +390,7 @@ def cross_validate_grad_desc(lam, trials, n_fold):
 	tolerance = 0.00001 	# 1e-5 four 0's and a 1
 
 	for i in range(trials):
-		print("\n ====== Lambda:", lam, " ======")
+		if debugging: print("\n ====== Lambda:", lam, " ======")
 		sum = 0
 
 		for j in range(n_fold):
@@ -461,11 +462,15 @@ populate_test(f2, source_test_data, test_y, test_x)
 print("--- Done ---")
 
 # ---- Linear Regression ----
-print("--- Calculating Linear Regression ---\n ")
+
+#####################################################################
+
+print("\n=========================================================")
+print("==================== LINEAR REGRESSION ==================")
+print("=========================================================")
 linreg_weights = linreg_calculateW(training_y, training_x)
 #print(predictions)
 
-# -- Print results --
 print("\n=====================================")
 print("  Linear Regression (vs. test data)  ")
 print("=====================================")
@@ -481,13 +486,13 @@ training_error_LR = compute_rmse(predictions_lr_train, training_y)
 print("RMSE Error: ", training_error_LR)
 
 # ---- Ridge Regression ----
-print("\n==================")
-print(" Ridge Regression ")
-print("==================")
+print("\n=========================================================")
+print("==================== RIDGE REGRESSION ==================")
+print("========================================================")
 
-print("============================")
-print("== Finding optimal lambda ==")
-print("============================")
+print("\n========================")
+print(" Finding optimal lambda ")
+print("========================")
 opt_lam = ridge_reg()
 
 print("\n=====================================")
@@ -499,45 +504,48 @@ predictions_RR = ridgereg_predict(weights_RR, test_x)
 test_error_RR = compute_rmse(predictions_RR, test_y)
 print("RMSE Error: ", test_error_RR)
 
-# ############ GRADIENT DESCENT ##############
-# print("\n=========================================================")
-# print("================= LINEAR GRADIENT DESCENT ===============")
-# print("=========================================================")
+##############################################################################
+######################## GRADIENT DESCENT ####################################
+##############################################################################
+
+print("\n=========================================================")
+print("================= LINEAR GRADIENT DESCENT ===============")
+print("=========================================================")
 step = 0.00001			# 1e-5: four 0's and a 1
 tolerance = 0.00001 	# 1e-5
-lam = 400
-#
-# print("\n--- Calculating weights ---")
-# weights_LGD = grad_desc(training_x, training_y, lam, step, tolerance)
-#
-# print("\n==============================================")
-# print("=== Lin. Gradient Descent (vs. test data) ===")
-# print("=============================================")
-# predictions_LGD = linreg_predict(weights_LGD, test_x)
-# test_error_LGD = compute_rmse(predictions_LGD, test_y)
-# print("RMSE Error: ", test_error_LGD)
-# # Current result: 0.14582817901908202
-#
-# print("\n=================================================")
-# print("=== Lin. Gradient Descent (vs. training data) ===")
-# print("=================================================")
-# predictions_LGD_train = linreg_predict(weights_LGD, training_x)
-# test_error_LGD_train = compute_rmse(predictions_LGD_train, training_y)
-# print("RMSE Error: ", test_error_LGD)
+lam = 0					# for linear gradient descent, lambda = 0
+
+print("\n--- Calculating weights ---")
+weights_LGD = grad_desc(training_x, training_y, lam, step, tolerance)
+print("--- Done ---                                           ")
+
+print("\n========================================")
+print(" Lin. Gradient Descent (vs. test data) ")
+print("=======================================")
+predictions_LGD = linreg_predict(weights_LGD, test_x)
+test_error_LGD = compute_rmse(predictions_LGD, test_y)
+print("RMSE Error: ", test_error_LGD)
+# Current result: 0.14582817901908202
+
+print("\n===========================================")
+print(" Lin. Gradient Descent (vs. training data) ")
+print("===========================================")
+predictions_LGD_train = linreg_predict(weights_LGD, training_x)
+test_error_LGD_train = compute_rmse(predictions_LGD_train, training_y)
+print("RMSE Error: ", test_error_LGD)
 # Current result: 0.14582817901908202
 
 
-print("\n===============================================")
-print("====== RIDGE REGRESSION GRADIENT DESCENT ======")
-print("===============================================")
+print("\n=====================================================")
+print("========= RIDGE REGRESSION GRADIENT DESCENT =========")
+print("=====================================================")
 print(" --- Determining optimal lambda --- ")
-opt_lam = cross_validate_grad_desc(lam, 10, 5)	#10 trials, 5 rounds per trial
-# opt_lam = 25
+opt_lam = cross_validate_grad_desc(400, 10, 5)	#10 trials, 5 rounds per trial
 print("== Optimal Lambda ==\n ", opt_lam)
 
-print("\n===============================================")
-print("=== Ridge Gradient Descent (vs. test data) ===")
-print("===============================================")
+print("\n=========================================")
+print(" Ridge Gradient Descent (vs. test data) ")
+print("=========================================")
 weights_RGD = grad_desc(training_x, training_y, opt_lam, step, tolerance)
 predictions_RGD = linreg_predict(weights_RGD, test_x)
 test_error_RGD = compute_rmse(predictions_RGD, test_y)
